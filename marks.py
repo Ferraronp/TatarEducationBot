@@ -81,6 +81,10 @@ def update_marks(username, login, password) -> dict or bool:
         marks = " ".join(g[j:-1])
         result = cur.execute("""SELECT * FROM marks
                                 WHERE username = '{}' and object = '{}'""".format(username, object)).fetchall()
+        try:
+            sr_past = result[0][3]
+        except IndexError:
+            sr_past = float(0)
         if not result:
             cur.execute("""INSERT into marks(username, object, marks, medium)
                  values('{}', '{}', '{}', {})""".format(username, object, marks, sr))
@@ -90,9 +94,9 @@ def update_marks(username, login, password) -> dict or bool:
                         WHERE username = '{}' and object = '{}'""".format(marks, sr, username, object))
         try:
             if str(result[0][2]) != marks:
-                updates[object] = (str(result[0][2]), marks)
+                updates[object] = (str(result[0][2]), marks, sr_past, sr)
         except IndexError:
-            updates[object] = ('', marks)
+            updates[object] = ('', marks, sr_past, sr)
     con.commit()
     con.close()
     if not updates:
@@ -101,6 +105,8 @@ def update_marks(username, login, password) -> dict or bool:
 
 
 def get_difference(dic: dict):
+    """Словарь, где ключ - предмет, значение - кортеж из старых и кортеж из новых оценок,
+    старое значение среднего балла и новое"""
     ret = ''
     for key in dic:
         a = ''.join(dic[key][0].split())
@@ -109,13 +115,20 @@ def get_difference(dic: dict):
         if data != [[], [], []]:
             if not "".join(data[0]).strip():
                 data = data[1:]
-            ret += key + '\n```\n' + "\n".join(list(map(lambda x: " ".join(x), data))) + '\n```\n'
+            sr_past = dic[key][2]
+            sr = dic[key][3]
+            if sr_past <= sr:
+                sim = '📈'
+            else:
+                sim = '📉'
+            ret += key + '\n```\n' + "\n".join(list(map(lambda x: " ".join(x), data))) + \
+                   f'\n```Средний балл: {sr_past}{sim}{sr}\n\n'
         else:
             ret += key + '\n'
         # ret += key + '\n' + " ".join(data) + '\n'
     ret = ret  # .replace('(', '\\(').replace(')', '\\)')
     # ret = "```" + ret[:-1] + "```"
-    return ret[:-1]
+    return ret.rstrip()
 
 
 def difference_of_marks(a: str, b: str) -> list:
