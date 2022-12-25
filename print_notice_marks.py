@@ -95,6 +95,8 @@ def unset_timer(update, context):
 
 def print_marks(update, context):
     userid = str(update.message.from_user.id)
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("PRINT_MARKS " + userid)
     marks = get_marks(userid)
     if not marks:
         # update.message.reply_text("Введите /start")
@@ -105,6 +107,7 @@ def print_marks(update, context):
 
 
 def send_msg(context, userid: str, msg: str):
+    error = False
     msg = msg.replace('=', '\\=').replace('-', '\\-').replace(".", "\\.")
     msg = msg.replace("(", "\\(").replace(")", "\\)").replace('+', '\\+')
     sent = False
@@ -123,3 +126,6 @@ def send_msg(context, userid: str, msg: str):
             except Exception:
                 pass
             time.sleep(10)
+            error = True
+    if error:
+        print("Отправлено")

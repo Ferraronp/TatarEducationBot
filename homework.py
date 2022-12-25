@@ -128,6 +128,8 @@ def get_homework(userid: str) -> list or bool:
 
 def print_homework(update, context):
     userid = update.message.chat_id
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("PRINT_HOMEWORK " + str(userid))
     text = get_homework(userid)
     if not text:
         send_msg(context, userid, 'Произошла ошибка')
@@ -137,6 +139,7 @@ def print_homework(update, context):
 
 
 def send_msg(context, userid: str, msg: str):
+    error = False
     msg = msg.replace('=', '\\=').replace('-', '\\-').replace('(', '\\(').replace(')', '\\)').replace('+', '\\+')
     msg = msg.replace('.', '\\.').replace('!', '\\!')
     sent = False
@@ -149,3 +152,6 @@ def send_msg(context, userid: str, msg: str):
             print(f"\033[91m{datetime.datetime.now()} Error in homework.py in {func_name}\033[0m"
                   f"\n{ex}\n{userid}\n{[msg]}")
             time.sleep(10)
+            error = True
+    if error:
+        print("Отправлено")

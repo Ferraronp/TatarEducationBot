@@ -11,6 +11,14 @@ from schedule import *
 
 
 def echo(update, context):
+
+    try:
+        userid = update.message.chat_id
+        print(f"\033[93m{datetime.datetime.now()}\033[0m")
+        print("PRINT_ECHO " + str(userid))
+    except Exception:
+        pass
+
     """reply_keyboard = [['/help', '/close'],
                       ['/start', '/marks'],
                       ['/set', '/unset'],

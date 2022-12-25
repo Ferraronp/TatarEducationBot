@@ -41,6 +41,8 @@ def get_schedule(userid: str) -> str or bool:
 
 def print_schedule(update, context):
     userid = update.message.chat_id
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("PRINT_SCHEDULE " + str(userid))
     text = get_schedule(userid)
     if not text:
         send_msg(context, userid, 'Произошла ошибка')
@@ -206,6 +208,7 @@ def get_schedule_notes(userid: str) -> dict:
 
 
 def send_msg(context, userid: str, msg: str):
+    error = False
     msg = msg.replace('=', '\\=').replace('-', '\\-').replace('(', '\\(').replace(')', '\\)').replace('+', '\\+')
     msg = msg.replace('.', '\\.').replace('!', '\\!')
     sent = False
@@ -218,3 +221,6 @@ def send_msg(context, userid: str, msg: str):
             print(f"\033[91m{datetime.datetime.now()} Error in schedule.py in {func_name}\033[0m"
                   f"\n{ex}\n{userid}\n{[msg]}")
             time.sleep(10)
+            error = True
+    if error:
+        print("Отправлено")
