@@ -14,3 +14,5 @@ from edu_login import *
 from print_notice_marks import *
 from homework import *
 from schedule import *
+from setup import *
+from rating import *

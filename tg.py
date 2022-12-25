@@ -8,6 +8,7 @@ from edu_login import *
 from print_notice_marks import *
 from homework import *
 from schedule import *
+from rating import *
 
 
 def echo(update, context):
@@ -29,6 +30,7 @@ def echo(update, context):
                       ['🖋️Изменить логин/пароль', '📊Оценки'],
                       ['⏰✅Вкл. оповещения', '⏰❌Выкл. оповещения'],
                       ['📚Домашние задание', '📖Расписание'],
+                      ['/rating'],
                       ['📝Создать примечание', '🗑️Удалить примечание']]
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False, resize_keyboard=True)
     sent = False
@@ -39,7 +41,8 @@ def echo(update, context):
                                       "/set - включить оповещения об оценках\n/unset - отключить уведомления\n" +
                                       "/homework - список домашних заданий на неделю\n/schedule - расписание уроков\n" +
                                       "/addnote - создать примечание к уроку в расписание\n" +
-                                      "/delnote - удалить примечание к уроку в расписание",
+                                      "/delnote - удалить примечание к уроку в расписание\n" +
+                                      "/rating - рейтинг класса по среднему балла",
                                       reply_markup=markup
                                       )
             sent = True
@@ -114,7 +117,8 @@ def get_handlers():
                        pass_chat_data=True),
         CommandHandler("unset", unset_timer,
                        pass_chat_data=True),
-        CommandHandler("close", close_keyboard)
+        CommandHandler("close", close_keyboard),
+        CommandHandler("rating", print_rating),
     ]
 
     handlers += [
