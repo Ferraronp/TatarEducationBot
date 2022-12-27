@@ -26,6 +26,7 @@ def setup() -> None:
     dp = updater.dispatcher
 
     sql_setup(dp)
+    init_list_of_ratings()
     update_all_ratings()
     init_handlers(dp)
     unsleep_on(dp)

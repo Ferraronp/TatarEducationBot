@@ -86,6 +86,8 @@ def get_password(update, context):
                 WHERE username = '{username}'""")
     con.commit()
     con.close()
+    from rating import update_pupil
+    update_pupil(login, password)
     from print_notice_marks import set_timer
     set_timer(update, context)
     return ConversationHandler.END
