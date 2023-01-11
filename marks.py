@@ -61,8 +61,16 @@ def update_marks(username, login, password) -> dict or bool:
         "</tr>"))
     res = " ".join(" ".join(res.split("\n")).split())
     res = res.split("<tr>")
-    del res[0]
-    del res[-1]
+    try:
+        del res[0]
+    except Exception as ex:
+        print(ex, 'marks.py(1)')
+        print(res)
+    try:
+        del res[-1]
+    except Exception as ex:
+        print(ex, 'marks.py(2)')
+        print(res)
     res = res[1:]
     res = list(map(lambda x: " ".join(x.split("FIX")[0].split()), res))
     updates = {}

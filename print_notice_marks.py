@@ -25,12 +25,16 @@ def remove_job_if_exists(name, context):
     WHERE username = '{int(name)}'""")
     con.commit()
     con.close()
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("REMOVE_TIMER " + str(name))
     return True
 
 
 def set_timer(update, context):
     """Добавляем задачу в очередь"""
     chat_id = update.message.chat_id
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("SET_TIMER " + str(chat_id))
     job_removed = remove_job_if_exists(
         str(chat_id),
         context
@@ -110,6 +114,13 @@ def send_msg(context, userid: str, msg: str):
     error = False
     msg = msg.replace('=', '\\=').replace('-', '\\-').replace(".", "\\.")
     msg = msg.replace("(", "\\(").replace(")", "\\)").replace('+', '\\+')
+    # print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print(f"\033[93m{datetime.datetime.now()}\033[0m", end=' ')
+    try:
+        print(userid)
+    except Exception:
+        pass
+    print([msg])
     sent = False
     while not sent:
         try:

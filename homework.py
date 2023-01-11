@@ -142,6 +142,13 @@ def send_msg(context, userid: str, msg: str):
     error = False
     msg = msg.replace('=', '\\=').replace('-', '\\-').replace('(', '\\(').replace(')', '\\)').replace('+', '\\+')
     msg = msg.replace('.', '\\.').replace('!', '\\!')
+    # print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print(f"\033[93m{datetime.datetime.now()}\033[0m", end=' ')
+    try:
+        print(userid)
+    except Exception:
+        pass
+    print([msg])
     sent = False
     while not sent:
         try:

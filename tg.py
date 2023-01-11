@@ -30,7 +30,7 @@ def echo(update, context):
                       ['🖋️Изменить логин/пароль', '📊Оценки'],
                       ['⏰✅Вкл. оповещения', '⏰❌Выкл. оповещения'],
                       ['📚Домашние задание', '📖Расписание'],
-                      ['/rating'],
+                      ['🏆Рейтинг'],
                       ['📝Создать примечание', '🗑️Удалить примечание']]
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False, resize_keyboard=True)
     sent = False
@@ -131,7 +131,8 @@ def get_handlers():
                       pass_job_queue=True,
                       pass_chat_data=True),
         PrefixHandler("⏰❌", "Выкл.", unset_timer,
-                      pass_chat_data=True)
+                      pass_chat_data=True),
+        PrefixHandler('🏆', 'Рейтинг', print_rating)
     ]
 
     handlers += [text_handler]

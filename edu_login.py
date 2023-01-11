@@ -66,7 +66,7 @@ def get_password(update, context):
                       ['🖋️Изменить логин/пароль', '📊Оценки'],
                       ['⏰✅Вкл. оповещения', '⏰❌Выкл. оповещения'],
                       ['📚Домашние задание', '📖Расписание'],
-                      ['/rating'],
+                      ['🏆Рейтинг'],
                       ['📝Создать примечание', '🗑️Удалить примечание']]
     markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False, resize_keyboard=True)
     send_msg(update, "Авторизовано!\n" +
@@ -127,12 +127,18 @@ def check(login, password, **kwargs):
             if 'Должность' in post_request:
                 second_code = 400
     # if 'class="table term-marks"' not in post_request:
-    if 'Выход' not in post_request:
+    if 'Войти в учётную запись EDU' in post_request:
         return False
     return post_request
 
 
 def send_msg(update, msg, markup=None):
+    print(f"\033[93m{datetime.datetime.now()}\033[0m", end=' ')
+    try:
+        print(update.message.from_user.id)
+    except Exception:
+        pass
+    print([msg])
     sent = False
     while not sent:
         try:

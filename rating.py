@@ -48,7 +48,10 @@ def get_school_class_medium(login, password) -> (str, str):
     school = school.split('Школа:')[-1].split('<td>')[1].split('</td>')[0].strip()
     f = check(login, password, url='https://edu.tatar.ru/user/diary/term')
     clas = f.split("Класс: ")[-1].split('	</p>')[0].strip()
-    medium = float(f.split('ИТОГО</strong></td><td>')[-1].split('</td>')[0])
+    try:
+        medium = float(f.split('ИТОГО</strong></td><td>')[-1].split('</td>')[0])
+    except ValueError:
+        medium = 0.0
     return school, clas, medium
 
 
@@ -126,6 +129,13 @@ def print_rating(update, context):
 def send_msg(context, userid: str, msg: str):
     error = False
     msg = msg.replace(".", "\\.").replace(")", "\\)")
+    # print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print(f"\033[93m{datetime.datetime.now()}\033[0m", end=' ')
+    try:
+        print(userid)
+    except Exception:
+        pass
+    print([msg])
     sent = False
     while not sent:
         try:

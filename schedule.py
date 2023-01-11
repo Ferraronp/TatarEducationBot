@@ -52,6 +52,8 @@ def print_schedule(update, context):
 
 def add_note_to_schedule(update, context):
     userid = update.message.chat_id
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("ADD_NOTE " + str(userid))
     send_msg(context, userid, "Создание примечания\nВведите номер дня недели(1, 2, ...)\n/close - для отмены")
     return 1
 
@@ -132,6 +134,8 @@ def get_msg_note_schedule(update, context):
 
 def delete_schedule_note(update, context):
     userid = update.message.chat_id
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("DEL_NOTE " + str(userid))
     send_msg(context, userid, "Удаление примечания\nВведите номер дня недели(1, 2, ...)\n/close - для отмены")
     return 1
 
@@ -211,6 +215,13 @@ def send_msg(context, userid: str, msg: str):
     error = False
     msg = msg.replace('=', '\\=').replace('-', '\\-').replace('(', '\\(').replace(')', '\\)').replace('+', '\\+')
     msg = msg.replace('.', '\\.').replace('!', '\\!')
+    # print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print(f"\033[93m{datetime.datetime.now()}\033[0m", end=' ')
+    try:
+        print(userid)
+    except Exception:
+        pass
+    print([msg])
     sent = False
     while not sent:
         try:
