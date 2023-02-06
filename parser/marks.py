@@ -1,16 +1,15 @@
-import sqlite3
-from edu_login import check
+from imports.imports import *
+import database.sql_commands
+import parser.edu_login
 
 
-def get_marks(userid: str) -> str or bool:
-    con = sqlite3.connect("db.db")
-    cur = con.cursor()
-    user = cur.execute(f"""SELECT login, password FROM users
-        WHERE username = '{userid}'""").fetchone()
-    update_marks(userid, user[0], user[1])
-    marks = cur.execute(f"""SELECT * FROM marks
-                WHERE username = '{userid}'""").fetchall()
-    con.close()
+def get_marks(userid: str) -> str | bool:
+    user = database.sql_commands.get_login_password(userid)
+    if not user:
+        return False
+    login, password = user
+    update_marks(userid, login, password)
+    marks = database.sql_commands.get_marks(userid)
     if not marks:
         return False
     marks = list(map(lambda x: str(x[1]).capitalize() + (":\n" + str(x[2]) + "\n" + str(x[3])) * int(x[3] != 0), marks))
@@ -18,14 +17,10 @@ def get_marks(userid: str) -> str or bool:
 
 
 def get_new_marks(userid: str):
-    con = sqlite3.connect("db.db")
-    cur = con.cursor()
-    t = cur.execute(f"""SELECT login, password FROM users
-                    WHERE username = '{userid}'""").fetchone()
-    con.close()
-    if t is None:
+    user = database.sql_commands.get_login_password(userid)
+    if not user:
         return "Вы не авторизованы\nВведите /start"
-    login, password = tuple(t)
+    login, password = tuple(user)
     marks = update_marks(userid, login, password)
     if marks is True:
         return True
@@ -39,23 +34,12 @@ def update_marks(username, login, password) -> dict or bool:
     """Возвращает True, если нет изменений, иначе
     словарь, где ключ - предмет, значение - кортеж из старых и новых оценок.\n
     Вносит изменения в базу данных оценок"""
-    res = check(login, password)
+    res = parser.edu_login.check(login, password)
     if not res:
-        con = sqlite3.connect("db.db")
-        cur = con.cursor()
-        cur.execute(f"""UPDATE users
-                    set can = 0
-                    WHERE username = '{username}'""")
-        con.commit()
-        con.close()
+        database.sql_commands.update_column_can(username, 0)
         return False
-    con = sqlite3.connect("db.db")
-    cur = con.cursor()
-    cur.execute(f"""UPDATE users
-            set can = 1
-            WHERE username = '{username}'""")
-    con.commit()
-
+    database.sql_commands.update_column_can(username, 1)
+    res = res.get("https://edu.tatar.ru/user/diary/term", timeout=120).text
     res = "".join("".join("".join(" ".join("".join("".join(res.split("\t")).split('<td>')
                                                    ).split('</td>')).split("<!--")).split("-->")).split(
         "</tr>"))
@@ -64,12 +48,12 @@ def update_marks(username, login, password) -> dict or bool:
     try:
         del res[0]
     except Exception as ex:
-        print(ex, 'marks.py(1)')
+        print(ex, 'update_marks(1)')
         print(res)
     try:
         del res[-1]
     except Exception as ex:
-        print(ex, 'marks.py(2)')
+        print(ex, 'update_marks(2)')
         print(res)
     res = res[1:]
     res = list(map(lambda x: " ".join(x.split("FIX")[0].split()), res))
@@ -83,30 +67,22 @@ def update_marks(username, login, password) -> dict or bool:
             sr = float(g[-1])
         except ValueError:
             sr = 0
-        object = " ".join(g[:j])
+        object_ = " ".join(g[:j])
         if sr == 0:
-            object = " ".join(g)
+            object_ = " ".join(g)
         marks = " ".join(g[j:-1])
-        result = cur.execute("""SELECT * FROM marks
-                                WHERE username = '{}' and object = '{}'""".format(username, object)).fetchall()
+        result = database.sql_commands.get_marks_by_object(username, object_)
+        database.sql_commands.add_marks(username, object_, marks, sr)
         try:
             sr_past = result[0][3]
         except IndexError:
             sr_past = float(0)
-        if not result:
-            cur.execute("""INSERT into marks(username, object, marks, medium)
-                 values('{}', '{}', '{}', {})""".format(username, object, marks, sr))
-        else:
-            cur.execute("""UPDATE marks
-                        set marks = '{}', medium = {}
-                        WHERE username = '{}' and object = '{}'""".format(marks, sr, username, object))
+
         try:
             if str(result[0][2]) != marks:
-                updates[object] = (str(result[0][2]), marks, sr_past, sr)
+                updates[object_] = (str(result[0][2]), marks, sr_past, sr)
         except IndexError:
-            updates[object] = ('', marks, sr_past, sr)
-    con.commit()
-    con.close()
+            updates[object_] = ('', marks, sr_past, sr)
     if not updates:
         return True
     return updates
@@ -134,7 +110,7 @@ def get_difference(dic: dict):
         else:
             ret += key + '\n'
         # ret += key + '\n' + " ".join(data) + '\n'
-    ret = ret  # .replace('(', '\\(').replace(')', '\\)')
+    # ret = ret  # .replace('(', '\\(').replace(')', '\\)')
     # ret = "```" + ret[:-1] + "```"
     return ret.rstrip()
 

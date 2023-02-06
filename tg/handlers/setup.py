@@ -1,16 +1,15 @@
-from imports import *
+import time
+
+import database.sql_commands
+from parser.rating import init_list_of_ratings
+from tg.handlers.handlers import *
 
 
 def sql_setup(dp):
-    con = sqlite3.connect("db.db")
-    cur = con.cursor()
-    marks = cur.execute("""SELECT username, login, password, msg FROM users
-                            WHERE msg = 1""").fetchall()
-    con.close()
+    marks = database.sql_commands.get_userid_password_login_where_msg()
     for i in marks:
-        if i[3] == 1:
-            time.sleep(1)
-            set_timer_off(dp, i[0])
+        time.sleep(1)
+        set_timer_off(dp, i[0])
 
 
 def init_handlers(dp):
@@ -21,16 +20,17 @@ def init_handlers(dp):
 
 
 def setup() -> None:
-    token = open('parametrs.txt', mode='r').read()
+    start_time = time.time()
+    token = open('tg/handlers/parametrs.txt', mode='r').read()
     updater = Updater(token, use_context=True)
     dp = updater.dispatcher
 
     sql_setup(dp)
     init_list_of_ratings()
-    update_all_ratings()
     init_handlers(dp)
     unsleep_on(dp)
 
+    print(time.time() - start_time)
     print(f"Запущено {datetime.datetime.now()}")
-    updater.start_polling(timeout=30)
+    updater.start_polling()
     updater.idle()
