@@ -6,7 +6,7 @@ from tg.handlers.handlers import *
 
 
 def sql_setup(dp):
-    marks = database.sql_commands.get_userid_password_login_where_msg()
+    marks = database.sql_commands.get_username_password_login_where_msg()
     for i in marks:
         time.sleep(1)
         set_timer_off(dp, i[0])
@@ -26,7 +26,7 @@ def setup() -> None:
     dp = updater.dispatcher
 
     sql_setup(dp)
-    init_list_of_ratings()
+    # init_list_of_ratings()
     init_handlers(dp)
     unsleep_on(dp)
 

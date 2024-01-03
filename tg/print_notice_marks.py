@@ -29,19 +29,19 @@ def set_timer(update, context):
         print(f"\033[94m{datetime.datetime.now()}\033[0m", end=' ')
         print(userid, update.message.text)
         return
-    print(f"\033[93m{datetime.datetime.now()}\033[0m")
-    print("SET_TIMER " + str(userid))
     job_removed = remove_job_if_exists(
         str(userid),
         context
     )
+    print(f"\033[93m{datetime.datetime.now()}\033[0m")
+    print("SET_TIMER " + str(userid))
     job = context.job_queue.run_repeating(
         task,
-        interval=60 * 2,
+        interval=60 * 7,
         first=1,
         context=userid,
         name=userid,
-        job_kwargs={"max_instances": 10}
+        job_kwargs={"max_instances": 50}
     )
     database.sql_commands.update_column_msg(userid, 1)
     text = 'Оповещения включены'
@@ -58,11 +58,11 @@ def set_timer_off(dp, chat_id):
     )
     job = context.job_queue.run_repeating(
         task,
-        interval=60 * 2,
+        interval=60 * 7,
         first=5,
         context=chat_id,
         name=str(chat_id),
-        job_kwargs={"max_instances": 10}
+        job_kwargs={"max_instances": 50}
     )
     jobs[chat_id] = job
 
@@ -98,7 +98,4 @@ def print_marks(update, context):
     print(f"\033[93m{datetime.datetime.now()}\033[0m")
     print("PRINT_MARKS " + userid)
     marks = get_marks(userid)
-    if not marks:
-        send_msg_with_parse_mode(context, userid, "Введите /start")
-        return
     send_msg_with_parse_mode(context, userid, marks)

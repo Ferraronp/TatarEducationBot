@@ -16,6 +16,14 @@ def send_msg(update, msg, markup=None):
             sent = True
         except Exception as ex:
             print(f"\033[91m{datetime.datetime.now()} Error in send_msg\033[0m\n{ex}")
+            try:
+                if update.message is None or 'blocked' in str(ex) or 'user is deactivated' in str(ex):
+                    if update.message is None:
+                        # print(update)
+                        pass
+                    break
+            except Exception:
+                pass
             time.sleep(10)
             error = True
     if error:
@@ -44,7 +52,7 @@ def send_msg_with_parse_mode(context, userid, msg: str):
                   f" in send_msg_with_parse_mode\033[0m"
                   f"\n{ex}\n{userid}\n{[msg]}")
             try:
-                if 'blocked' in str(ex):
+                if 'blocked' in str(ex) or 'user is deactivated' in str(ex):
                     break
             except Exception:
                 pass

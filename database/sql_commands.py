@@ -17,6 +17,14 @@ def add_login(username, login) -> None:
     con.close()
 
 
+def add_user(username) -> None:
+    con = sqlite3.connect("database/db.db")
+    cur = con.cursor()
+    cur.execute("""INSERT into users(username) values(?)""", (username,))
+    con.commit()
+    con.close()
+
+
 def add_password(username, password) -> None:
     con = sqlite3.connect("database/db.db")
     time.sleep(0.5)
@@ -65,55 +73,55 @@ def update_column_can(username, status: int) -> None:
     con.close()
 
 
-def add_note_schedule(userid, day, num_of_lesson, note) -> None:
+def add_note_schedule(username, day, num_of_lesson, note) -> None:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     result = cur.execute(f"""SELECT * FROM notes_of_lessons
-                                                WHERE username = '{userid}' and
+                                                WHERE username = '{username}' and
                                                  day = {day} and
                                                   number_lesson={num_of_lesson}""").fetchall()
     if not result:
         cur.execute(f"""INSERT into notes_of_lessons(username, day, number_lesson, note)
-                         values('{userid}', '{day}', '{num_of_lesson}', '{note}')""")
+                         values('{username}', '{day}', '{num_of_lesson}', '{note}')""")
     else:
         cur.execute(f"""UPDATE notes_of_lessons
                                 set note = '{note}'
-                                WHERE username = '{userid}' and
+                                WHERE username = '{username}' and
                                  day = {day} and
                                   number_lesson = {num_of_lesson}""")
     con.commit()
     con.close()
 
 
-def delete_note_schedule(userid, day, num_of_lesson) -> None:
+def delete_note_schedule(username, day, num_of_lesson) -> None:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     result = cur.execute(f"""SELECT * FROM notes_of_lessons
-                                                    WHERE username = '{userid}' and
+                                                    WHERE username = '{username}' and
                                                      day = {day} and number_lesson = {num_of_lesson}""").fetchall()
     if result:
         cur.execute(f"""DELETE from notes_of_lessons
-                                    WHERE username = '{userid}' and
+                                    WHERE username = '{username}' and
                                      day = {day} and
                                       number_lesson = {num_of_lesson}""")
     con.commit()
     con.close()
 
 
-def get_notes_schedule(userid) -> list:
+def get_notes_schedule(username) -> list:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     notes = cur.execute(f"""SELECT day, number_lesson, note FROM notes_of_lessons
-                                WHERE username = '{userid}'""").fetchall()
+                                WHERE username = '{username}'""").fetchall()
     con.close()
     return notes
 
 
-def get_column_can(userid) -> bool:
+def get_column_can(username) -> bool:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     user = cur.execute(f"""SELECT can FROM users
-                    WHERE username = '{userid}'""").fetchone()
+                    WHERE username = '{username}'""").fetchone()
     con.close()
     if not user:
         return False
@@ -180,44 +188,46 @@ def get_school_class() -> list:
     return list_for_ratings
 
 
-def get_marks(userid: str) -> list:
+def get_marks(username: str) -> list:
+    """Returns: [(object, marks, medium, mark_of_quarter), ...]"""
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
-    marks = cur.execute(f"""SELECT * FROM marks
-                    WHERE username = '{userid}'""").fetchall()
+    marks = cur.execute(f"""SELECT object, marks, medium, mark_of_quarter FROM marks
+                    WHERE username = '{username}'""").fetchall()
     con.close()
     return marks
 
 
-def get_marks_by_object(userid: str, object_: str) -> list:
+def get_marks_by_object(username: str, object_: str) -> list:
+    """Returns: [(username, object, marks, medium, mark_of_quarter), ...]"""
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     marks = cur.execute(f"""SELECT * FROM marks
-                                    WHERE username = '{userid}' and object = '{object_}'""").fetchall()
+                                    WHERE username = '{username}' and object = '{object_}'""").fetchall()
     con.close()
     return marks
 
 
-def add_marks(userid: str, object_: str, marks: str, medium: float) -> None:
-    result = get_marks_by_object(userid, object_)
+def add_marks(username: str, object_: str, marks: str, medium: float, mark_of_quarter: str) -> None:
+    result = get_marks_by_object(username, object_)
     if not result:
         con = sqlite3.connect("database/db.db")
         cur = con.cursor()
-        cur.execute(f"""INSERT into marks(username, object, marks, medium)
-             values('{userid}', '{object_}', '{marks}', {medium})""")
+        cur.execute(f"""INSERT into marks(username, object, marks, medium, mark_of_quarter)
+             values('{username}', '{object_}', '{marks}', {medium}, '{mark_of_quarter}')""")
         con.commit()
         con.close()
     else:
         con = sqlite3.connect("database/db.db")
         cur = con.cursor()
         cur.execute(f"""UPDATE marks
-                    set marks = '{marks}', medium = {medium}
-                    WHERE username = '{userid}' and object = '{object_}'""")
+                    set marks = '{marks}', medium = {medium}, mark_of_quarter = '{mark_of_quarter}'
+                    WHERE username = '{username}' and object = '{object_}'""")
         con.commit()
         con.close()
 
 
-def get_userid_password_login_where_msg() -> list:
+def get_username_password_login_where_msg() -> list:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     users = cur.execute(f"""SELECT username, login, password FROM users
@@ -235,10 +245,19 @@ def get_users_of_blacklist() -> list:
     return users
 
 
-def delete_marks(userid: str) -> None:
+def delete_marks(username: str) -> None:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     cur.execute(f"""DELETE from marks
-                    WHERE username = '{userid}'""")
+                    WHERE username = '{username}'""")
+    con.commit()
+    con.close()
+
+
+def delete_marks_by_object(username: str, object_: str) -> None:
+    con = sqlite3.connect("database/db.db")
+    cur = con.cursor()
+    cur.execute(f"""DELETE from marks
+                    WHERE username = '{username}' and object = '{object_}'""")
     con.commit()
     con.close()

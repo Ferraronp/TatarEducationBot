@@ -30,7 +30,7 @@ def print_homework(update, context):
     print(f"\033[93m{datetime.datetime.now()}\033[0m")
     print("PRINT_HOMEWORK " + str(userid))
 
-    text = get_day_homework(userid, datetime.datetime.now().date())
+    text = get_day_homework(userid, datetime.datetime.now())
     if not text:
         send_msg(update, 'Произошла ошибка')
         return

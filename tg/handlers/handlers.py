@@ -44,7 +44,7 @@ def get_handlers():
     )
     handlers += [start_handler]
 
-    add_note_schedule_handler = ConversationHandler(
+    '''add_note_schedule_handler = ConversationHandler(
         entry_points=[CommandHandler('addnote', add_note_to_schedule,
                                      run_async=True),
                       PrefixHandler("📝", "Создать", add_note_to_schedule,
@@ -76,7 +76,7 @@ def get_handlers():
         },
         fallbacks=[]
     )
-    handlers += [delete_note_schedule_handler]
+    handlers += [delete_note_schedule_handler]'''
 
     handlers += [
         CommandHandler("marks", print_marks,

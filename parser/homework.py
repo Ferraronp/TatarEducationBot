@@ -1,3 +1,5 @@
+import datetime
+
 from imports.imports import *
 import parser.edu_login
 import database.sql_commands
@@ -84,18 +86,49 @@ def get_homework(userid: str) -> list | bool:
     send = []
     for i, key in enumerate(sp):
         send += [key + "\n" + "\n\n".join(list(map(lambda x: '\n'.join(x), sp[key])))]
-
     return send[::-1]
 
 
-def get_day_homework(userid: str, date: datetime.datetime.date) -> str | bool:
-    some_date = datetime.datetime(2022, 10, 5).date()
+def get_homework_of_day_from_site(login: str, password: str, date: datetime.datetime.date) -> list[dict] | bool:
+    """
+    time - промежуток времени, когда идёт урок(например, 08:40-09:20)
+    :return:
+    [
+        {
+            "object": str,
+            "homework": str,
+            "time": str
+        }
+    ]
+    """
+    session = parser.edu_login.check(login, password)
+    if not session:
+        return False
+    text = session.get(f"https://edu.tatar.ru/user/diary/day?for={date.timestamp()}", timeout=120).text
+    text = text.replace('&mdash;', '')
+    html = BS(text, 'html.parser')
+    count = len(html.select('#content > div.r_block > div > div > div.d-table > table > tbody > tr:nth-child(1) > td:nth-child(1)'))
+    list_ = list()
+    for i in range(count):
+        time_of_lesson = html.select(f'#content > div.r_block > div > div > div.d-table > table > tbody > tr:nth-child({i}) > td:nth-child(1)')
+        object_ = html.select(f'#content > div.r_block > div > div > div.d-table > table > tbody > tr:nth-child({i}) > td:nth-child(2)')
+        homework = html.select(f'#content > div.r_block > div > div > div.d-table > table > tbody > tr:nth-child({i}) > td:nth-child(3)')
+        list_.append({
+            "object": object_,
+            "homework": homework,
+            "time": time_of_lesson
+        })
+    return list_
+
+
+def get_day_homework(username: str, date: datetime.datetime) -> str | bool:
+    some_date = datetime.datetime(2022, 10, 5)
     some_date_edu = 1664917200
     a = (date - some_date).days
     delta = 24 * 60 * 60  # перевод из дней в секунды
     url = [f'https://edu.tatar.ru/user/diary/day?for={str(some_date_edu + a * delta)}']
 
-    user = database.sql_commands.get_login_password(userid)
+    user = database.sql_commands.get_login_password(username)
     if not user:
         return False
     login, password = user
@@ -121,4 +154,4 @@ def get_day_homework(userid: str, date: datetime.datetime.date) -> str | bool:
 
 def get_day_from_homework(text: str) -> datetime.datetime.date:
     date = list(map(int, text.split("\n")[0].split()[1].split('.')))
-    return datetime.datetime(2000 + date[2], date[1], date[0]).date()
+    return datetime.datetime(2000 + date[2], date[1], date[0])

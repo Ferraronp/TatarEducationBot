@@ -1,7 +1,10 @@
 from imports.imports import *
 
+sessions = dict()
+
 
 def check(login, password, **kwargs):
+    global sessions
     first_code = 0
     second_code = 0
     post_request = ""
@@ -10,7 +13,11 @@ def check(login, password, **kwargs):
         url = 'https://edu.tatar.ru/logon'
         user_agent_val = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' \
                          'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36'
-        session = grequests.Session()
+        if login not in sessions:
+            session = grequests.Session()
+            sessions[login] = session
+        else:
+            session = sessions[login]
         # with grequests.Session() as session:
         r = session.get(url, headers={
             'User-Agent': user_agent_val
@@ -29,7 +36,7 @@ def check(login, password, **kwargs):
         post_request = session.get(url2, timeout=120)
         second_code = post_request.status_code
         post_request = post_request.text
-        session.close()
+        # session.close()
         if 'Должность' in post_request:
             second_code = 400
     # if 'class="table term-marks"' not in post_request:

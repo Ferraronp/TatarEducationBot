@@ -12,7 +12,7 @@ from parser.edu_login import *
 from parser.rating import update_pupil
 
 
-def start(update, context):
+'''def start(update, context):
     import requests
     username = str(update.message.from_user.id)
     blacklist = database.sql_commands.get_users_of_blacklist()
@@ -59,18 +59,19 @@ def start(update, context):
     update_pupil(login, password)
 
     set_timer(update, context)
-    return ConversationHandler.END
+    return ConversationHandler.END'''
 
 
-'''def start(update, context):
+def start(update, context):
     username = str(update.message.from_user.id)
     blacklist = database.sql_commands.get_users_of_blacklist()
     if username in blacklist:
         print(f"\033[94m{datetime.datetime.now()}\033[0m", end=' ')
         print(username, update.message.text)
         return ConversationHandler.END
+    # add_user(username)
     send_msg(update, "Введите свой логин от edu.tatar.ru")
-    return 1'''
+    return 1
 
 
 def get_login(update, context):
@@ -86,6 +87,7 @@ def get_password(update, context):
     password = update.message.text
     add_password(username, password)
     login, password = get_login_password(username)
+    print(login, password)
 
     try:
         ret = check(login, password)
@@ -95,6 +97,8 @@ def get_password(update, context):
     if not ret:
         send_msg(update, "Не работает. Не верный логин или пароль")
         return start(update, context)
+
+    delete_marks(username)
 
     echo(update, context, after_authorization=True)
 
