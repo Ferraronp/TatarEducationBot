@@ -1,12 +1,109 @@
-from imports.imports import *
-import database.sql_commands
-import parser.edu_login
+import tg.database.sql_commands
+from tg.handlers.support_functions.send_msg import *
+
+from tg.handlers.support_functions.check_response import check_response
+
+jobs = {}
+
+
+def unset_timer(update, context):
+    """Убираем оповещения об оценках"""
+    username = str(update.message.chat_id)
+    blacklist = tg.database.sql_commands.get_users_of_blacklist()
+    if username in blacklist:
+        logging.info(f"User in blacklist write message: {username}, {update.message.text}")
+        return
+    userid = str(update.message.from_user.id)
+    remove_job_if_exists(str(username), context)
+    text = 'Оповещения выключены'
+    send_msg_with_parse_mode(context, userid, text)
+
+
+def remove_job_if_exists(name, context):
+    """Убираем задачу из списка"""
+    current_jobs = context.job_queue.get_jobs_by_name(name)
+    if not current_jobs:
+        return False
+    for job in current_jobs:
+        job.schedule_removal()
+    tg.database.sql_commands.update_column_msg(str(name), 0)
+    logging.info(f"User removing timer: {name}")
+    return True
+
+
+def set_timer(update, context):
+    """Включение оповещений об оценках"""
+    username = str(update.message.from_user.id)
+    blacklist = tg.database.sql_commands.get_users_of_blacklist()
+    if username in blacklist:
+        logging.info(f"User in blacklist write message: {username}, {update.message.text}")
+        return
+    remove_job_if_exists(
+        str(username),
+        context
+    )
+    logging.info(f"User set timer: {username}")
+    job = context.job_queue.run_repeating(
+        task,
+        interval=60 * 3,
+        first=1,
+        context=username,
+        name=username,
+        job_kwargs={"max_instances": 50}
+    )
+    tg.database.sql_commands.update_column_msg(username, 1)
+    text = 'Оповещения включены'
+    send_msg_with_parse_mode(context, username, text)
+    jobs[username] = job
+
+
+def set_timer_off(dp, chat_id):
+    """Включение оповещений после перезапуска бота"""
+    context = CallbackContext(dp)
+    remove_job_if_exists(
+        str(chat_id),
+        context
+    )
+    job = context.job_queue.run_repeating(
+        task,
+        interval=60 * 3,
+        first=5,
+        context=chat_id,
+        name=str(chat_id),
+        job_kwargs={"max_instances": 50, "misfire_grace_time": None}
+    )
+    jobs[chat_id] = job
+
+
+def task(context):
+    """Выводит оповещение"""
+    userid = context.job.context
+    marks = get_new_marks(userid)
+    if type(marks) is str:
+        send_msg_with_parse_mode(context, userid, marks)
+
+
+def print_marks(update, context):
+    """Вывод всех оценок"""
+    username = str(update.message.from_user.id)
+    blacklist = tg.database.sql_commands.get_users_of_blacklist()
+    if username in blacklist:
+        logging.info(f"User in blacklist write message: {username}, {update.message.text}")
+        return
+    logging.info(f"User getting marks: {username}")
+    message_id = send_msg(update, 'Собираем информацию...')
+    try:
+        marks = get_marks(username)
+    except Exception:
+        update_message(context, message_id, username, text='Произошла ошибка, попробуйте позже')
+    else:
+        update_message(context, message_id, username, text=marks, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 def get_marks(username: str) -> str:
     """Формирование списка оценок в читаемый вид. Возращает False, если оценок нет"""
     update_marks(username)
-    marks = database.sql_commands.get_marks(username)
+    marks = tg.database.sql_commands.get_marks(username)
     if not marks:
         return 'Оценок нет'
     ret = ''
@@ -20,7 +117,8 @@ def get_marks(username: str) -> str:
     return ret.strip()
 
 
-def get_new_marks(username: str):
+def get_new_marks(username: str) -> str | bool:
+    """Возращает оценки в читаемом виде. True - нет изменений, False - ошибка"""
     marks = update_marks(username)
     if marks is False:  # Ошибка с получением данных
         return False
@@ -30,15 +128,15 @@ def get_new_marks(username: str):
     return ret
 
 
-def update_marks(username: str):
+def update_marks(username: str) -> dict | bool:
     marks = get_marks_of_changed_objects(username)
     if type(marks) is bool:
-        return marks
+        return False
     for object_ in marks:
-        database.sql_commands.add_marks(username, object_,
+        tg.database.sql_commands.add_marks(username, object_,
                                         ' '.join(marks[object_]['new_marks']),
-                                        marks[object_]['new_medium'],
-                                        marks[object_]['new_mark_of_quarter'])
+                                           marks[object_]['new_medium'],
+                                           marks[object_]['new_mark_of_quarter'])
     return marks
 
 
@@ -55,20 +153,35 @@ def get_marks_of_changed_objects(username: str) -> dict | bool:
                 "new_medium": float
             }
     }"""
-    user = database.sql_commands.get_login_password(username)
+    user = tg.database.sql_commands.get_login_password(username)
     if not user:
         return False
     login, password = tuple(user)
-    marks = get_marks_from_site(login, password)
-    if not marks:
-        database.sql_commands.update_column_can(username, 0)
+    url = 'http://127.0.0.1:8000/marks'
+    data = {"login": login, "password": password}
+    marks_response = grequests.get(url, params=data).send().response
+    marks = check_response(marks_response)
+    if type(marks) is str:
+        logging.warning(f"Server cannot update marks to user: {username}")
         return False
-    database.sql_commands.update_column_can(username, 1)
+
+    try:
+        url = 'http://127.0.0.1:8000/information'
+        data = {"login": login, "password": password}
+        information_response = grequests.get(url, params=data).send().response
+        info = check_response(information_response)
+        if type(info) is str:
+            logging.warning(f"Server cannot get users school and class: {username}")
+        school, class_, medium = info
+        tg.database.sql_commands.update_pupil_in_db(login, school, class_, medium)
+    except Exception:
+        pass
+
     dictionary = dict()
     for marks_of_object in marks['objects']:
         object_ = marks_of_object['object']
-        f = database.sql_commands.get_marks_by_object(username, object_)
-        if not f:  # Нет предмета в базе данных
+        f = tg.database.sql_commands.get_marks_by_object(username, object_)
+        if not f:  # Нет предмета в БД
             old_marks = []
             old_medium = 0
             old_mark_of_quarter = None
@@ -78,7 +191,9 @@ def get_marks_of_changed_objects(username: str) -> dict | bool:
             old_mark_of_quarter = f[0][4]
         if (old_marks != marks_of_object['marks'] or
                 (old_mark_of_quarter != marks_of_object['mark_of_quarter'] and
-                 bool(old_mark_of_quarter) != bool(marks_of_object['mark_of_quarter']))):
+                 bool(old_mark_of_quarter) != bool(marks_of_object['mark_of_quarter'])) or
+                # В БД значение по умолчанию None, с сайта приходит ""
+                not f):  # Если пришёл новый предмет с сайта(нет в БД)
             dictionary[object_] = {
                 'old_marks': old_marks,
                 'new_marks': marks_of_object['marks'],
@@ -87,59 +202,6 @@ def get_marks_of_changed_objects(username: str) -> dict | bool:
                 'old_medium': old_medium,
                 'new_medium': marks_of_object['medium']
             }
-    return dictionary
-
-
-def get_marks_from_site(login: str, password: str) -> dict:
-    """
-    :return:
-        {
-            "objects":
-                [
-                    {
-                        "object": str
-                        "marks": [...],
-                        "mark_of_quarter": float,
-                        "medium": float
-                    },
-                    ...
-                ]
-            "medium_for_rating": float
-        }"""
-    res = parser.edu_login.check(login, password)
-    if not res:
-        return dict()
-    res = res.get("https://edu.tatar.ru/user/diary/term", timeout=120).text
-    res = res.replace('&mdash;', '')
-    html = BS(res, 'html.parser')
-    count = len(html.select('#content > div.r_block > div > div > div > table > tbody > tr'))
-
-    dictionary = dict()
-    dictionary['objects'] = list()
-    dictionary['medium_for_rating'] = 0
-    for i in range(count):
-        marks = html.select(f'#content > div.r_block > div > div > div > table > tbody > tr:nth-child({i + 1}) > td')
-        if i == count - 1:
-            # Последняя строка таблицы(строка итого: средний балл всех средних баллов)
-            dictionary['medium_for_rating'] = str(marks[1]).replace('<td>', '').replace('</td>', '')
-            continue
-        marks = list(map(str, marks))
-        marks = list(map(lambda x: x.replace('<td>', '').replace('</td>', ''), marks))
-        marks = list(map(lambda x: x.strip(), marks))
-        marks.pop(-2)  # Убираем ссылку на кнопку "просмотр"
-
-        object_ = marks.pop(0)
-        object_ = " ".join(object_.split())  # Убираем лишние пробелы между словами
-
-        mark_of_quarter = marks.pop(-1)
-        medium = marks.pop(-1)
-        marks = list(filter(None, marks))
-        dictionary['objects'] += [{
-            'object': object_,
-            'marks': marks,
-            'medium': float(medium) if medium else 0,
-            'mark_of_quarter': mark_of_quarter
-        }]
     return dictionary
 
 
@@ -165,7 +227,7 @@ def get_difference(dic: dict) -> str:
             ret += '```\n' + "\n".join(list(map(lambda x: " ".join(x), data))) + \
                    f'\n```Средний балл: {old_medium}{sim}{new_medium}\n'
         # Изменилась оценка за четверть
-        if dic[key]['old_mark_of_quarter'] != dic[key]['new_mark_of_quarter'] and\
+        if dic[key]['old_mark_of_quarter'] != dic[key]['new_mark_of_quarter'] and \
                 bool(dic[key]['old_mark_of_quarter']) != bool(dic[key]['new_mark_of_quarter']):
             ret += 'Изменение оценки за четверть(полугодие): '
             if not dic[key]['new_mark_of_quarter']:
@@ -183,8 +245,8 @@ def get_difference(dic: dict) -> str:
 
 def difference_of_marks(a: str, b: str) -> list:
     """
-    :param a: Старые оценки(типа - '4534')
-    :param b: Новые оценки(типа - '4534')
+    :param a: Старые оценки(типа - '453432')
+    :param b: Новые оценки (типа - '45343')
     :return: [[], [], []]
     """
     n = len(a)

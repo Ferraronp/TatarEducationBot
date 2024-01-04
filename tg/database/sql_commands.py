@@ -20,16 +20,17 @@ def add_login(username, login) -> None:
 def add_user(username) -> None:
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
-    cur.execute("""INSERT into users(username) values(?)""", (username,))
+    result = cur.execute(f"""SELECT * FROM users
+                             WHERE username = '{username}'""").fetchall()
+    if not result:
+        cur.execute("""INSERT into users(username) values(?)""", (username,))
     con.commit()
     con.close()
 
 
 def add_password(username, password) -> None:
     con = sqlite3.connect("database/db.db")
-    time.sleep(0.5)
     cur = con.cursor()
-    time.sleep(0.5)
     cur.execute(f"""UPDATE users
         set password = '{password}'
         WHERE username = '{username}'""")
@@ -37,7 +38,11 @@ def add_password(username, password) -> None:
     con.close()
 
 
-def get_login_password(username: str) -> (str, str) or bool:
+def get_login_password(username: str) -> tuple[str, str] | bool:
+    """
+    :param username:
+    :return: (login, password) or False
+    """
     con = sqlite3.connect("database/db.db")
     cur = con.cursor()
     result = cur.execute(f"""SELECT login, password FROM users
@@ -71,50 +76,6 @@ def update_column_can(username, status: int) -> None:
                     WHERE username = '{username}'""")
     con.commit()
     con.close()
-
-
-def add_note_schedule(username, day, num_of_lesson, note) -> None:
-    con = sqlite3.connect("database/db.db")
-    cur = con.cursor()
-    result = cur.execute(f"""SELECT * FROM notes_of_lessons
-                                                WHERE username = '{username}' and
-                                                 day = {day} and
-                                                  number_lesson={num_of_lesson}""").fetchall()
-    if not result:
-        cur.execute(f"""INSERT into notes_of_lessons(username, day, number_lesson, note)
-                         values('{username}', '{day}', '{num_of_lesson}', '{note}')""")
-    else:
-        cur.execute(f"""UPDATE notes_of_lessons
-                                set note = '{note}'
-                                WHERE username = '{username}' and
-                                 day = {day} and
-                                  number_lesson = {num_of_lesson}""")
-    con.commit()
-    con.close()
-
-
-def delete_note_schedule(username, day, num_of_lesson) -> None:
-    con = sqlite3.connect("database/db.db")
-    cur = con.cursor()
-    result = cur.execute(f"""SELECT * FROM notes_of_lessons
-                                                    WHERE username = '{username}' and
-                                                     day = {day} and number_lesson = {num_of_lesson}""").fetchall()
-    if result:
-        cur.execute(f"""DELETE from notes_of_lessons
-                                    WHERE username = '{username}' and
-                                     day = {day} and
-                                      number_lesson = {num_of_lesson}""")
-    con.commit()
-    con.close()
-
-
-def get_notes_schedule(username) -> list:
-    con = sqlite3.connect("database/db.db")
-    cur = con.cursor()
-    notes = cur.execute(f"""SELECT day, number_lesson, note FROM notes_of_lessons
-                                WHERE username = '{username}'""").fetchall()
-    con.close()
-    return notes
 
 
 def get_column_can(username) -> bool:
